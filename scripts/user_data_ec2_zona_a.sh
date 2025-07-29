@@ -40,14 +40,14 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd /home/ec2-user
 
 #Instalar o mcp servers da aws
-git clone https://github.com/aws/mcp-servers.git
-cd mcp-servers
-uv pip install -r requirements.txt
-uv pip install aws-mcp-servers
-uv pip install aws-mcp-servers-cli
-uv pip install aws-mcp-servers-cli-aws
-uv pip install aws-mcp-servers-cli-aws-ec2
-uv pip install aws-mcp-servers-cli-aws-ec2-zona-a
+#git clone https://github.com/aws/mcp-servers.git
+#cd mcp-servers
+#uv pip install -r requirements.txt
+#uv pip install aws-mcp-servers
+#uv pip install aws-mcp-servers-cli
+#uv pip install aws-mcp-servers-cli-aws
+#uv pip install aws-mcp-servers-cli-aws-ec2
+#uv pip install aws-mcp-servers-cli-aws-ec2-zona-a
 
 # Instalando jq
 sudo yum install jq -y
