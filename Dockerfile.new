@@ -1,0 +1,30 @@
+FROM public.ecr.aws/docker/library/node:18-slim
+
+# Upgrade do npm para versão compatível com Node.js 18
+RUN npm install -g npm@10 --loglevel=error
+
+# Instalando curl para health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/app
+
+# Copiar package.json raiz primeiro para cache de dependências
+COPY package*.json ./
+RUN npm install --loglevel=error
+
+# Copiar package.json do client e instalar dependências
+COPY client/package*.json ./client/
+RUN cd client && npm install --legacy-peer-deps --loglevel=error
+
+# Copiar todos os arquivos do projeto
+COPY . .
+
+# Build do front-end React com Vite
+# Definindo VITE_API_URL para apontar para a API na mesma aplicação
+RUN cd client && VITE_API_URL=/api npm run build
+
+# Expor porta 8080 (porta padrão da aplicação)
+EXPOSE 8080
+
+# Comando para iniciar a aplicação
+CMD ["npm", "start"]
