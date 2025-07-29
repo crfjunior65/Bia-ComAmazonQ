@@ -1,0 +1,201 @@
+resource "aws_instance" "ec2_bia_dev" {
+
+  depends_on = [aws_key_pair.deployer]
+
+  #count = 1
+  #ami   = var.amis["Ubnt-us-east-1"]
+  #ami           = data.aws_ami.ubuntu_linux.id
+  #data.terraform_remote_state.remote-state-information.outputs.autor
+  ami = data.aws_ami.amazon_linux_2023.id
+  #data.aws_ami.amazon_linux.id
+  #data.terraform_remote_state.vpc.outputs.ami_amazon_linux.id
+  instance_type = "t3.micro"
+
+  key_name = var.key_name
+
+  #Selecionar VPC
+  #vpc_id      = module.vpc.vpc_id
+
+  #Selecionar SubRede
+  #subnet_id = module.vpc.vpc_id.public_subnets[0]
+  #subnet_id = data.terraform_remote_state.vpc.outputs.vpc_public_subnets_id[0]
+  subnet_id = data.terraform_remote_state.vpc.outputs.vpc_private_subnets_id[0]
+
+
+  # module.vpc.public_subnets[0]
+
+  #Atribuir IP Publico
+  #associate_public_ip_address = true
+
+  #iam_instance_profile        = data.terraform_remote_state.vpc.outputs.iam_ssm_profile
+  #aws_iam_instance_profile.ecs_node.id
+
+  #Definir Volume
+
+  user_data = file("InstallBiaSubNetPrivada.sh")
+
+  # Associar o Role SSM à instância EC2
+  iam_instance_profile = data.terraform_remote_state.iam.outputs.iam_ssm_profile.id
+  #aws_iam_instance_profile.ssm_profile.name
+
+  ###
+  /*
+  provisioner "remote-exec" {
+    inline = [
+      # Mounting Efs
+      #"sudo mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport ${aws_efs_file_system.efs.dns_name}:/  /var/www/html",
+      "sudo mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport ${data.terraform_remote_state.EFS.efs_fs_dns}:/  /home/ec2-user/GLPI",
+      "sleep 15",
+      "sudo chmod go+rw /home/ec2-user/GLPI",
+      "sudo bash -c 'echo Welcome  > /home/ec2-user/GLPI/index.html'",
+    ]
+  }
+
+resource "aws_instance" "example" {
+  ami           = "ami-123456"
+  instance_type = "t2.micro"
+  user_data     = <<-EOF
+    #!/bin/bash
+    echo "INSTANCE_ID=${aws_instance.example.id}" >> /home/ec2-user/terraform-outputs.txt
+    echo "PUBLIC_IP=${aws_instance.example.public_ip}" >> /home/ec2-user/terraform-outputs.txt
+    echo "RDS_ENDPOINT=${data.terraform_remote_state.rds.outputs.db_db_address}" >> /home/ec2-user/terraform-outputs.txt
+  EOF
+}
+resource "local_file" "instance_outputs" {
+  content  = jsonencode({
+    instance_id = aws_instance.example.id
+    public_ip   = aws_instance.example.public_ip
+    rds_endpoint = data.terraform_remote_state.rds.outputs.db_db_address
+  })
+  filename = "outputs.json"
+}
+
+resource "null_resource" "upload_to_ec2" {
+  triggers = {
+    instance_id = aws_instance.example.id
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = file("~/.ssh/aws-key-terraform")
+    host        = aws_instance.example.public_ip
+  }
+
+  provisioner "file" {
+    source      = local_file.instance_outputs.filename
+    destination = "/home/ec2-user/terraform-outputs.json"
+  }
+}
+cat /home/ec2-user/terraform-outputs.txt
+# Ou (para JSON):
+cat /home/ec2-user/terraform-outputs.json
+
+*/
+  ###
+
+  tags = {
+    Name        = "Bia DEV"
+    Terraform   = "true"
+    Environment = "Projeto"
+    Management  = "Terraform"
+    #Id_EFS      = data.terraform_remote_state.efs.outputs.efs_fs_id
+  }
+
+  vpc_security_group_ids = ["${data.terraform_remote_state.sg.outputs.sg_bia_dev}"]
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+Acoes Banco de Dados
+====================
+1  docker-compose up -d
+
+   1  cd bia/
+    2  cp scripts/ecs/unix/*.sh .
+    3  chmod +x *.sh
+    4  ls -lha
+    5  vi Dockerfile
+    6  vi docker-compose.yml
+    7  docker compose up -d
+    8  cat README.md
+    9  docker compose exec server bash -c 'npx sequelize db:migrate'
+   10  history
+
+
+
+ 4  cd bia
+    5  ls -lha
+    6  cat rodar_app_local_unix.sh
+    7  docker compose up -d
+    8  docker-compose up -d
+    9  vi Dockerfile
+   10  docker-compose down
+   11  docker-compose build server
+   12  docker-compose up -d
+   13  docker-compose down -v
+   14  cat README.md
+   15  docker-compose up -d
+   16  docker compose exec server bash -c 'npx sequelize db:migrate'
+   17  docker-compose exec server bash -c 'npx sequelize db:migrate'
+   18  docker-compose exec server bash -c 'npx sequelize db:create'
+   19  docker-compose up -d
+   20  docker-compose exec server bash -c 'npx sequelize db:create'
+   21  docker-compose exec server bash -c 'npx sequelize db:migrate'
+   22  pwd
+   23  docker container ls
+   24  docker-compose down
+   25  vi Dockerfile
+   26  docker-compose up -d
+   27  vi Dockerfile
+   28  docker-compose build server
+   29  docker-compose up -d
+   30  history
+
+   /home/junior/Dados/FormacaoAWS/Terraform/3a-Orquestrador
+
+/*
+      # Configurar RDS Banco Zabbix
+      "sudo mysql -hvar.zabbix_db_server -uvar.zabbix_db_user -pvar.zabbix_db_pass -e 'create user "var.zabbix_db_user"@"var.zabbix_db_server" identified by "var.zabbix_db_pass""",
+      "sudo mysql -hvar.zabbix_db_server -uvar.zabbix_db_user -pvar.zabbix_db_pass -e 'grant all privileges on var.zabbix_db_user.* to "var.zabbix_db_name}"@"var.zabbix_db_server}"'",
+      "sudo mysql -hvar.zabbix_db_server -uvar.zabbix_db_user -pvar.zabbix_db_pass -e 'set global log_bin_trust_function_creators = 1",
+*/
+
+
+/*
+
+      # Criar diretório para montagem
+      "sudo mkdir -p /mnt/efs",
+      "sleep 120",
+
+      # Montar o EFS
+      "sudo mount -t efs ${data.terraform_remote_state.efs.outputs.efs_fs_id}:/ /home/ec2-user/Data",
+      "sudo chmod go+rw /home/ec2-user/Data",
+      "sudo bash -c 'echo Welcome  > /home/ec2-user/Data/index.html'",
+      "sudo chown -R ec2-user:ec2-user /home/ec2-user/",
+
+      # Persistir a montagem (opcional)
+      "sudo bash -c echo '${data.terraform_remote_state.efs.outputs.efs_fs_id}:/ /home/ec2-user/Data efs defaults,_netdev 0 0' | sudo tee -a /etc/fstab"
+      */

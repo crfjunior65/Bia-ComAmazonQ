@@ -1,0 +1,106 @@
+resource "aws_vpc_peering_connection" "virginia_to_saopaulo" {
+  #provider    = aws.us-1
+  vpc_id      = module.vpc.vpc_id
+  peer_vpc_id = module.vpc_sa.vpc_id
+  peer_region = "sa-east-1"
+
+  auto_accept = false
+
+  tags = {
+    Name = "Virginia-to-SaoPaulo"
+  }
+}
+
+resource "aws_vpc_peering_connection_accepter" "saopaulo_accept" {
+  provider                  = aws.sa-1
+  vpc_peering_connection_id = aws_vpc_peering_connection.virginia_to_saopaulo.id
+  auto_accept               = true
+
+  tags = {
+    Name = "Accept-Virginia-to-SaoPaulo"
+  }
+}
+
+
+# Rotas para Virginia (us-east-1)
+# Para cada tipo de tabela de roteamento no módulo VPC
+
+# Tabelas Públicas
+resource "aws_route" "virginia_public_to_saopaulo" {
+  count                     = length(module.vpc.public_route_table_ids)
+  route_table_id            = module.vpc.public_route_table_ids[count.index]
+  destination_cidr_block    = module.vpc_sa.vpc_cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.virginia_to_saopaulo.id
+}
+
+# Tabelas Privadas
+resource "aws_route" "virginia_private_to_saopaulo" {
+  count                     = length(module.vpc.private_route_table_ids)
+  route_table_id            = module.vpc.private_route_table_ids[count.index]
+  destination_cidr_block    = module.vpc_sa.vpc_cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.virginia_to_saopaulo.id
+}
+
+# Tabelas de Banco de Dados (se existirem)
+resource "aws_route" "virginia_database_to_saopaulo" {
+  count                     = length(module.vpc.database_route_table_ids)
+  route_table_id            = module.vpc.database_route_table_ids[count.index]
+  destination_cidr_block    = module.vpc_sa.vpc_cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.virginia_to_saopaulo.id
+}
+
+# Rotas para São Paulo (sa-east-1) - usando o provider alternativo
+# Tabelas Públicas
+resource "aws_route" "saopaulo_public_to_virginia" {
+  provider                  = aws.sa-1
+  count                     = length(module.vpc_sa.public_route_table_ids)
+  route_table_id            = module.vpc_sa.public_route_table_ids[count.index]
+  destination_cidr_block    = module.vpc.vpc_cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.virginia_to_saopaulo.id
+}
+
+# Tabelas Privadas
+resource "aws_route" "saopaulo_private_to_virginia" {
+  provider                  = aws.sa-1
+  count                     = length(module.vpc_sa.private_route_table_ids)
+  route_table_id            = module.vpc_sa.private_route_table_ids[count.index]
+  destination_cidr_block    = module.vpc.vpc_cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.virginia_to_saopaulo.id
+}
+
+# Tabelas de Banco de Dados (se existirem)
+resource "aws_route" "saopaulo_database_to_virginia" {
+  provider                  = aws.sa-1
+  count                     = length(module.vpc_sa.database_route_table_ids)
+  route_table_id            = module.vpc_sa.database_route_table_ids[count.index]
+  destination_cidr_block    = module.vpc.vpc_cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.virginia_to_saopaulo.id
+}
+
+
+
+/*
+# Route Tables Virginia
+resource "aws_route" "virginia_to_saopaulo" {
+  #provider                  = aws.us-1
+  route_table_id            = module.vpc.private_route_table_ids[0]
+  destination_cidr_block    = module.vpc_sa.vpc_cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.virginia_to_saopaulo.id
+}
+
+# Route Tables São Paulo
+resource "aws_route" "saopaulo_to_virginia" {
+  provider                  = aws.sa-1
+  route_table_id            = module.vpc_sa.private_route_table_ids[0]
+  destination_cidr_block    = module.vpc.vpc_cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.virginia_to_saopaulo.id
+}
+*/
+
+/*
+module.vpc.aws_route_table.public[0]: Destruction complete after 1s
+module.vpc.aws_route_table.private[1]: Destruction complete after 1s
+module.vpc.aws_route_table.private[0]: Destruction complete after 1s
+module.vpc.aws_route_table.public[1]: Destruction complete after 1s
+module.vpc.aws_route_table.database[0]: Destruction complete after 1s
+*/
