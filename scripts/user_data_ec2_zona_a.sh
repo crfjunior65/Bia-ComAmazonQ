@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Atualizar pacotes
+sudo yum update -y
+
+# Instalar AWS CLI v2 (mesmo que já tenha v1, esta é a versão recomendada)
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Verificar instalação
+aws --version
+
 #Instalar Docker e Git
 sudo yum update -y
 sudo yum install git -y
