@@ -107,7 +107,56 @@ ecr_login() {
     aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$region.amazonaws.com
 }
 
-# Função para verificar se o repositório ECR existe
+# Função para verificar se o cluster existe e está ativo
+check_cluster_status() {
+    local region=$1
+    local cluster=$2
+    
+    log_info "Verificando status do cluster: $cluster"
+    
+    local cluster_status=$(aws ecs describe-clusters --clusters $cluster --region $region --query 'clusters[0].status' --output text 2>/dev/null)
+    local describe_exit_code=$?
+    
+    if [ $describe_exit_code -ne 0 ]; then
+        log_error "Não foi possível encontrar o cluster: $cluster"
+        log_error "Verifique se o nome do cluster está correto e se você tem permissões adequadas"
+        return 1
+    fi
+    
+    if [ "$cluster_status" != "ACTIVE" ]; then
+        log_error "Cluster '$cluster' não está ativo. Status: $cluster_status"
+        return 1
+    fi
+    
+    log_success "Cluster '$cluster' está ativo e disponível"
+    return 0
+}
+
+# Função para verificar se o serviço existe e está ativo
+check_service_status() {
+    local region=$1
+    local cluster=$2
+    local service=$3
+    
+    log_info "Verificando status do serviço: $service"
+    
+    local service_status=$(aws ecs describe-services --cluster $cluster --services $service --region $region --query 'services[0].status' --output text 2>/dev/null)
+    local describe_exit_code=$?
+    
+    if [ $describe_exit_code -ne 0 ]; then
+        log_error "Não foi possível encontrar o serviço: $service no cluster: $cluster"
+        log_error "Verifique se o nome do serviço está correto"
+        return 1
+    fi
+    
+    if [ "$service_status" != "ACTIVE" ]; then
+        log_error "Serviço '$service' não está ativo. Status: $service_status"
+        return 1
+    fi
+    
+    log_success "Serviço '$service' está ativo e disponível"
+    return 0
+}
 check_ecr_repo() {
     local region=$1
     local repo_name=$2
@@ -265,6 +314,16 @@ deploy() {
     log_info "Iniciando deploy..."
     log_info "Commit Hash: $commit_hash"
     log_info "ECR URI: $ecr_uri"
+    
+    # Verificar se o cluster existe e está ativo
+    if ! check_cluster_status $region $cluster; then
+        exit 1
+    fi
+    
+    # Verificar se o serviço existe e está ativo
+    if ! check_service_status $region $cluster $service; then
+        exit 1
+    fi
     
     # Verificar se o repositório ECR existe
     check_ecr_repo $region $ecr_repo
