@@ -35,4 +35,5 @@ yarn-error.log*
 .terraform/*
 .MD
 .MD/
+*.tar.gz
 
