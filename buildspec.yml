@@ -5,6 +5,8 @@ env:
     AWS_DEFAULT_REGION: us-east-1
     AWS_ACCOUNT_ID: 873976612170 
     IMAGE_REPO_NAME: bia
+    # Variável para o ALB - ajuste conforme necessário
+    VITE_API_URL: http://bia-alb-1140515688.us-east-1.elb.amazonaws.com
 
 phases:
   pre_build:
@@ -13,30 +15,44 @@ phases:
       - echo "Fazendo login no ECR..."
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       
-      # Definindo variáveis de versionamento
-      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
-      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - BUILD_NUMBER=${CODEBUILD_BUILD_NUMBER:-1}
-      - TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+      # Definindo variáveis de versionamento e exportando para outras fases
+      - export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+      - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export BUILD_NUMBER=${CODEBUILD_BUILD_NUMBER:-1}
+      - export TIMESTAMP=$(date +%Y%m%d-%H%M%S)
       
       # Tags múltiplas para melhor rastreabilidade
-      - IMAGE_TAG_COMMIT=$COMMIT_HASH
-      - IMAGE_TAG_BUILD=build-$BUILD_NUMBER
-      - IMAGE_TAG_TIMESTAMP=$TIMESTAMP
+      - export IMAGE_TAG_COMMIT=$COMMIT_HASH
+      - export IMAGE_TAG_BUILD=build-$BUILD_NUMBER
+      - export IMAGE_TAG_TIMESTAMP=$TIMESTAMP
       
       - echo "Repository URI = $REPOSITORY_URI"
       - echo "Commit Hash = $COMMIT_HASH"
       - echo "Build Number = $BUILD_NUMBER"
       - echo "Timestamp = $TIMESTAMP"
+      
+      # Salvando variáveis em arquivo para usar em outras fases
+      - echo "export REPOSITORY_URI=$REPOSITORY_URI" >> /tmp/build-vars.sh
+      - echo "export COMMIT_HASH=$COMMIT_HASH" >> /tmp/build-vars.sh
+      - echo "export BUILD_NUMBER=$BUILD_NUMBER" >> /tmp/build-vars.sh
+      - echo "export TIMESTAMP=$TIMESTAMP" >> /tmp/build-vars.sh
+      - echo "export IMAGE_TAG_COMMIT=$IMAGE_TAG_COMMIT" >> /tmp/build-vars.sh
+      - echo "export IMAGE_TAG_BUILD=$IMAGE_TAG_BUILD" >> /tmp/build-vars.sh
+      - echo "export IMAGE_TAG_TIMESTAMP=$IMAGE_TAG_TIMESTAMP" >> /tmp/build-vars.sh
 
   build:
     commands:
       - echo "=== INICIANDO BUILD ==="
       - echo "Build iniciado em $(date)"
-      - echo "Gerando imagem da BIA..."
       
-      # Build da imagem
-      - docker build -t $REPOSITORY_URI:latest .
+      # Carregando variáveis da fase anterior
+      - source /tmp/build-vars.sh
+      
+      - echo "Gerando imagem da BIA..."
+      - echo "Repository URI = $REPOSITORY_URI"
+      
+      # Build da imagem com build args para variáveis dinâmicas
+      - docker build --build-arg VITE_API_URL=$VITE_API_URL -t $REPOSITORY_URI:latest .
       
       # Criando múltiplas tags
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG_COMMIT
@@ -49,7 +65,12 @@ phases:
     commands:
       - echo "=== INICIANDO POST-BUILD ==="
       - echo "Build finalizado com sucesso em $(date)"
+      
+      # Carregando variáveis da fase anterior
+      - source /tmp/build-vars.sh
+      
       - echo "Fazendo push das imagens para o ECR..."
+      - echo "Repository URI = $REPOSITORY_URI"
       
       # Push de todas as tags
       - docker push $REPOSITORY_URI:latest
@@ -68,23 +89,26 @@ phases:
       - printf '[{"name":"bia","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG_COMMIT > imagedefinitions.json
       
       # Arquivo de metadados para rastreabilidade
-      - |
-        cat > build-metadata.json << EOF
-        {
-          "buildTime": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-          "commitHash": "$COMMIT_HASH",
-          "buildNumber": "$BUILD_NUMBER",
-          "repositoryUri": "$REPOSITORY_URI",
-          "tags": {
-            "latest": "$REPOSITORY_URI:latest",
-            "commit": "$REPOSITORY_URI:$IMAGE_TAG_COMMIT",
-            "build": "$REPOSITORY_URI:$IMAGE_TAG_BUILD",
-            "timestamp": "$REPOSITORY_URI:$IMAGE_TAG_TIMESTAMP"
-          }
-        }
-        EOF
+      - echo "{" > build-metadata.json
+      - echo "  \"buildTime\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"," >> build-metadata.json
+      - echo "  \"commitHash\": \"$COMMIT_HASH\"," >> build-metadata.json
+      - echo "  \"buildNumber\": \"$BUILD_NUMBER\"," >> build-metadata.json
+      - echo "  \"repositoryUri\": \"$REPOSITORY_URI\"," >> build-metadata.json
+      - echo "  \"tags\": {" >> build-metadata.json
+      - echo "    \"latest\": \"$REPOSITORY_URI:latest\"," >> build-metadata.json
+      - echo "    \"commit\": \"$REPOSITORY_URI:$IMAGE_TAG_COMMIT\"," >> build-metadata.json
+      - echo "    \"build\": \"$REPOSITORY_URI:$IMAGE_TAG_BUILD\"," >> build-metadata.json
+      - echo "    \"timestamp\": \"$REPOSITORY_URI:$IMAGE_TAG_TIMESTAMP\"" >> build-metadata.json
+      - echo "  }" >> build-metadata.json
+      - echo "}" >> build-metadata.json
       
       - echo "=== BUILD CONCLUÍDO COM SUCESSO ==="
+      
+      # Verificando conteúdo dos artefatos
+      - echo "Conteúdo do imagedefinitions.json:"
+      - cat imagedefinitions.json
+      - echo "Conteúdo do build-metadata.json:"
+      - cat build-metadata.json
 
 artifacts:
   files: 
