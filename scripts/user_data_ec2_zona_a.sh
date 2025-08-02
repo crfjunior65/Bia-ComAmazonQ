@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Atualizar pacotes
+sudo yum update -y
+
+# Instalar AWS CLI v2 (mesmo que já tenha v1, esta é a versão recomendada)
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Verificar instalação
+aws --version
+
 #Instalar Docker e Git
 sudo yum update -y
 sudo yum install git -y
@@ -40,14 +51,14 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd /home/ec2-user
 
 #Instalar o mcp servers da aws
-git clone https://github.com/aws/mcp-servers.git
-cd mcp-servers
-uv pip install -r requirements.txt
-uv pip install aws-mcp-servers
-uv pip install aws-mcp-servers-cli
-uv pip install aws-mcp-servers-cli-aws
-uv pip install aws-mcp-servers-cli-aws-ec2
-uv pip install aws-mcp-servers-cli-aws-ec2-zona-a
+#git clone https://github.com/aws/mcp-servers.git
+#cd mcp-servers
+#uv pip install -r requirements.txt
+#uv pip install aws-mcp-servers
+#uv pip install aws-mcp-servers-cli
+#uv pip install aws-mcp-servers-cli-aws
+#uv pip install aws-mcp-servers-cli-aws-ec2
+#uv pip install aws-mcp-servers-cli-aws-ec2-zona-a
 
 # Instalando jq
 sudo yum install jq -y
