@@ -1,0 +1,143 @@
+    1  sudo yum update
+    2  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    3  sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    4  ls -lha
+    5  sudo chown -R ec2-user:ec2-user *
+    6  unzip awscliv2.zip
+    7  ls -lha
+    8  sudo ./aws/install
+    9  aws s3 ls
+   10  aws --version
+   11  q
+   12  aws s3 ls
+   13  git
+   14  git clone https://github.com/crfjunior65/Bia-ComAmazonQ.git
+   15  cd Bia-ComAmazonQ/
+   16  ls -lha
+   17  sudo yum install -y python3-pip git unzip jq
+   18  cd ..
+   19  sudoyum update
+   20  sudo yum update
+   21  ls   -lha
+   22  cd Bia-ComAmazonQ/
+   23  ls -lha *.sh
+   24  ./build.sh 
+   25  ls -lha *.sh
+   26  ./deploy-to-ecr.sh 
+   27  cd ..
+   28  ls -lha
+   29  unzip
+   30  ls -lha
+   31  ws --version
+   32  aws --version
+   33  aws q help
+   34  aws plugins list | grep q
+   35  ls -lha
+   36  curl --proto '=https' --tlsv1.2 -sSf "https://desktop-release.q.us-east-1.amazonaws.com/latest/q-x86_64-linux.zip" -o "q.zip"
+   37  ls -lha
+   38  unzip q.zip 
+   39  ./q/install.sh
+   40  cd Bia-ComAmazonQ/
+   41  q
+   42  ls -lha
+   43  vi .amazonq/mcp.json 
+   44  q
+   45  uv pip install ecs-mcp-server
+   46  pip install uv
+   47  curl -LsSf https://astral.sh/uv/install.sh |sh
+   48  uv pip install ecs-mcp-server
+   49  uv venv
+   50  uv pip install ecs-mcp-server
+   51  python3 --version
+   52  sudo dnf install -y python3.13
+   53  uv venv
+   54  es
+   55  uv venv
+   56  uv pip install ecs-mcp-server
+   57  q
+   58  aws sts get-caller-identity
+   59  q
+   60  history 
+   61  cd Bia-ComAmazonQ/
+   62  q
+   63  vi Dockerfile
+   64  ls -lha *.sh
+   65  ./deploy-to-ecr.sh 
+   66  ./deploy.sh 
+   67  vi deploy.sh 
+   68  vi build.sh 
+   69  ./deploy.sh 
+   70  cat deploy.sh 
+   71  aws ecs update-service --cluster cluster-bia --service service-bia  --force-new-deployment
+   72  vi Dockerfile
+   73  ./deploy.sh 
+   74  q
+   75  history >>CMD-31-07-2025
+   76  q
+   77  ./deploy.sh 
+   78  q
+   79  cd  Bia
+   80  ccd ..
+   81  scp -P1322 junior@cgb.gdlogistica.com:/home/junior/Key-EC2.tar.gz .
+   82  tar xvzf Key-EC2.tar.gz 
+   83  ls -lha
+   84  mv home/ec2-user/.ssh/id_* .ssh/
+   85  ls -lha .ssh/
+   86  ssh -T git@github.com
+   87  cd Bia-ComAmazonQ/
+   88  git config --global user.name Junior Fernandes-EC2
+   89  git config --global user.name "Junior Fernandes-EC2"
+   90  git config --global user.email crfjunior65@gmail.com
+   91  git status
+   92  git add README.md
+   93  git commit -m "Teste via EC2"
+   94  git push origin main
+   95  git remote -v
+   96  git remote set-url origin git@github.com:crfjunior65/Bia-ComAmazonQ.git
+   97  git remote -v
+   98  git push origin main
+   99  git status
+  100  history >>CMD-31-07-2025 
+  101  git add .
+  102  git commit -m "Conteudo de Testes Desafio-02 EC2"
+  103  git push origin main
+  104  git status
+  105  docker conyainer ls
+  106  docker container ls
+  107  ls -laha
+  108  git clone https://github.com/henrylle/bia.git Bia-02082025
+  109  cd Bia-02082025/
+  110  ls -lha
+  111  vi deploy-ecs.sh 
+  112  htop
+  113  top
+  114  cd ../Bia-ComAmazonQ/
+  115  ls -lha
+  116  git status
+  117  git add deploy-ecs.sh
+  118  git commit -m "Correcao deploy-ecs.sh com AmazonQ"
+  119  git push
+  120  git push origin main
+  121  git remote -v
+  122  git pull
+  123  git config pull.rebase false
+  124  git push origin main
+  125  git pull
+  126  git push origin main
+  127  git push
+  128  git pull
+  129  git push
+  130  git status
+  131  top
+  132  ls -lha
+  133  vi Dockerfile
+  134  vi client/src/main.jsx 
+  135  vi client/src/components/AddTask.jsx 
+  136  ./deploy-ecs.sh deploy
+  137  vi deploy-ecs.sh 
+  138  ./deploy-ecs.sh deploy
+  139  ./deploy-ecs.sh deploy -c custer-bia 2>&1
+  140  vi client/src/components/AddTask.jsx 
+  141  ./deploy-ecs.sh deploy -c custer-bia 2>&1
+  142  git status
+  143  history >CMD-02082025-1120
