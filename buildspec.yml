@@ -1,26 +1,92 @@
 version: 0.2
 
+env:
+  variables:
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_ACCOUNT_ID: 873976612170 
+    IMAGE_REPO_NAME: bia
+
 phases:
   pre_build:
     commands:
-      - echo Fazendo login no ECR...      
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 905418381762.dkr.ecr.us-east-1.amazonaws.com
-      - REPOSITORY_URI=905418381762.dkr.ecr.us-east-1.amazonaws.com/bia
+      - echo "=== INICIANDO PRE-BUILD ==="
+      - echo "Fazendo login no ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      
+      # Definindo variáveis de versionamento
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - BUILD_NUMBER=${CODEBUILD_BUILD_NUMBER:-1}
+      - TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+      
+      # Tags múltiplas para melhor rastreabilidade
+      - IMAGE_TAG_COMMIT=$COMMIT_HASH
+      - IMAGE_TAG_BUILD=build-$BUILD_NUMBER
+      - IMAGE_TAG_TIMESTAMP=$TIMESTAMP
+      
+      - echo "Repository URI = $REPOSITORY_URI"
+      - echo "Commit Hash = $COMMIT_HASH"
+      - echo "Build Number = $BUILD_NUMBER"
+      - echo "Timestamp = $TIMESTAMP"
+
   build:
     commands:
-      - echo Build iniciado em `date`
-      - echo Gerando imagem da BIA...
+      - echo "=== INICIANDO BUILD ==="
+      - echo "Build iniciado em $(date)"
+      - echo "Gerando imagem da BIA..."
+      
+      # Build da imagem
       - docker build -t $REPOSITORY_URI:latest .
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      
+      # Criando múltiplas tags
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG_COMMIT
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG_BUILD
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG_TIMESTAMP
+      
+      - echo "Imagem buildada com sucesso!"
+
   post_build:
     commands:
-      - echo Build finalizado com sucesso em `date`
-      - echo Fazendo push da imagem para o ECR...
+      - echo "=== INICIANDO POST-BUILD ==="
+      - echo "Build finalizado com sucesso em $(date)"
+      - echo "Fazendo push das imagens para o ECR..."
+      
+      # Push de todas as tags
       - docker push $REPOSITORY_URI:latest
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo Gerando artefato da imagem para o ECS
-      - printf '[{"name":"bia","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - docker push $REPOSITORY_URI:$IMAGE_TAG_COMMIT
+      - docker push $REPOSITORY_URI:$IMAGE_TAG_BUILD
+      - docker push $REPOSITORY_URI:$IMAGE_TAG_TIMESTAMP
+      
+      # Limpeza local para economizar espaço
+      - docker rmi $REPOSITORY_URI:latest || true
+      - docker rmi $REPOSITORY_URI:$IMAGE_TAG_COMMIT || true
+      - docker rmi $REPOSITORY_URI:$IMAGE_TAG_BUILD || true
+      - docker rmi $REPOSITORY_URI:$IMAGE_TAG_TIMESTAMP || true
+      
+      - echo "=== GERANDO ARTEFATOS ==="
+      # Usando a tag do commit para o deploy (mais estável que latest)
+      - printf '[{"name":"bia","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG_COMMIT > imagedefinitions.json
+      
+      # Arquivo de metadados para rastreabilidade
+      - |
+        cat > build-metadata.json << EOF
+        {
+          "buildTime": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commitHash": "$COMMIT_HASH",
+          "buildNumber": "$BUILD_NUMBER",
+          "repositoryUri": "$REPOSITORY_URI",
+          "tags": {
+            "latest": "$REPOSITORY_URI:latest",
+            "commit": "$REPOSITORY_URI:$IMAGE_TAG_COMMIT",
+            "build": "$REPOSITORY_URI:$IMAGE_TAG_BUILD",
+            "timestamp": "$REPOSITORY_URI:$IMAGE_TAG_TIMESTAMP"
+          }
+        }
+        EOF
+      
+      - echo "=== BUILD CONCLUÍDO COM SUCESSO ==="
+
 artifacts:
-  files: imagedefinitions.json
+  files: 
+    - imagedefinitions.json
+    - build-metadata.json
